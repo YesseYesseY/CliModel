@@ -10,6 +10,7 @@ string ConfigMainAes = "";
 string ConfigUeVer = "GAME_UE5_LATEST";
 string ConfigPaksPath = "";
 List<KeyValuePair<FGuid, FAesKey>> ConfigAesKeys = new(); 
+string ConfigAction = "";
 
 void LoadConfig(string configPath) {
     var config = File.ReadAllLines(configPath);
@@ -40,10 +41,14 @@ for (int i = 0; i < args.Length; i++) {
     else if (args[i] == "-UeVer") ConfigUeVer = args[++i];
     else if (args[i] == "-PaksPath") ConfigPaksPath = args[++i];
     else if (args[i] == "-Config") LoadConfig(args[++i]);
+    else if (args[i] == "--") {
+        ConfigAction = args[++i];
+        break;
+    }
 }
 
 if (ConfigPaksPath == "") {
-    Console.WriteLine("Usage: CliModel.exe [OPTIONS]");
+    Console.WriteLine("Usage: CliModel.exe [OPTIONS] -- [ACTION]");
     Console.WriteLine("Options:");
     Console.WriteLine("  -Config     // Load options through a config file");
     Console.WriteLine("  -PaksPath // Required");
@@ -79,8 +84,10 @@ if (ConfigMainAes != "") {
     provider.SubmitKey(new FGuid(), new FAesKey(ConfigMainAes));
 }
 provider.SubmitKeys(ConfigAesKeys);
+
+bool singleAction = ConfigAction != "";
 while (true) {
-    var input = Console.ReadLine();
+    var input = singleAction ? ConfigAction : Console.ReadLine();
     var inputArgs = input.Split(' ');
 
     if (inputArgs is null || inputArgs.Length == 0)
@@ -121,6 +128,10 @@ while (true) {
         Directory.CreateDirectory(Path.GetDirectoryName(outFilePath));
         File.WriteAllText(outFilePath, code);
         Console.WriteLine($"Exported to: {ParsePath(outFilePath)}");
+    }
+
+    if (singleAction) {
+        break;
     }
 }
 
