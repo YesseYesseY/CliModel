@@ -3,6 +3,7 @@ using CUE4Parse.Encryption.Aes;
 using CUE4Parse.FileProvider;
 using CUE4Parse.UE4.Objects.Core.Misc;
 using CUE4Parse.UE4.Versions;
+using CUE4Parse.UE4.Objects.UObject;
 using Newtonsoft.Json;
 
 if (args.Length < 2) {
@@ -22,6 +23,7 @@ var gameDir = ParsePath(args[1]);
 Console.WriteLine($"Loading UE Version {args[0]} on path {gameDir}");
 
 var provider = new DefaultFileProvider(gameDir, SearchOption.TopDirectoryOnly, new VersionContainer((EGame)Enum.Parse(typeof(EGame), args[0])));
+provider.ReadScriptData = true;
 provider.Initialize();
 
 for (int i = 2; i < args.Length; i++) {
@@ -60,6 +62,15 @@ while (true) {
                 writer.WriteLine(path);
             }
         }
+        Console.WriteLine($"Exported to: {ParsePath(outFilePath)}");
+    }
+
+    else if (inputArgs[0] == "decomp") {
+        var obj = provider.LoadPackageObject<UClass>(inputArgs[1]);
+        var code = obj.DecompileBlueprintToPseudo();
+        var outFilePath = Path.Join(outPath, obj.GetPathName().Split('.')[0] + ".cpp");
+        Directory.CreateDirectory(Path.GetDirectoryName(outFilePath));
+        File.WriteAllText(outFilePath, code);
         Console.WriteLine($"Exported to: {ParsePath(outFilePath)}");
     }
 }
