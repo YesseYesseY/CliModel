@@ -6,11 +6,54 @@ using CUE4Parse.UE4.Versions;
 using CUE4Parse.UE4.Objects.UObject;
 using Newtonsoft.Json;
 
-if (args.Length < 2) {
-    Console.WriteLine("Usage: CliModel.exe [UEVER] [PATH_TO_FOLDER_WITH_PAKS] [OPTIONS]");
+string ConfigMainAes = "";
+string ConfigUeVer = "GAME_UE5_LATEST";
+string ConfigPaksPath = "";
+
+void LoadConfig(string configPath) {
+    var config = File.ReadAllLines(configPath);
+    foreach (var line in config) {
+        var data = line.Split('=');
+             if (data[0] == "MainAes") ConfigMainAes = data[1];
+        else if (data[0] == "UeVer") ConfigUeVer = data[1];
+        else if (data[0] == "UePaksPath") ConfigPaksPath = data[1];
+    }
+
+    if (ConfigPaksPath == "") {
+        ConfigPaksPath = Path.GetDirectoryName(configPath);
+    }
+}
+
+var naturalConfigPath = Path.Join(Directory.GetCurrentDirectory(), "CliModel.config");
+if (File.Exists(naturalConfigPath)) {
+    Console.WriteLine("Found CliModel.config!");
+    LoadConfig(naturalConfigPath);
+}
+
+for (int i = 0; i < args.Length; i++) {
+         if (args[i] == "-MainAes") ConfigMainAes = args[++i];
+    else if (args[i] == "-UeVer") ConfigUeVer = args[++i];
+    else if (args[i] == "-PaksPath") ConfigPaksPath = args[++i];
+    else if (args[i] == "-Config") LoadConfig(args[++i]);
+}
+
+if (ConfigPaksPath == "") {
+    Console.WriteLine("Usage: CliModel.exe [OPTIONS]");
     Console.WriteLine("Options:");
+    Console.WriteLine("  -Config     // Load options through a config file");
+    Console.WriteLine("  -PaksPath // Required");
+    Console.WriteLine("  -UeVer      // Default: GAME_UE5_LATEST");
     Console.WriteLine("  -MainAes");
-    Console.WriteLine("Example: CliModel.exe GAME_UE4_22 Z:/home/yes/WinApps/7.30/FortniteGame/Content/Paks -MainAes 0xD23E6F3CF45A2E31081CB7D5F94C85EC50CCB1A804F8C90248F72FA3896912E4");
+    Console.WriteLine("Example: CliModel.exe -UeVer GAME_UE4_22 -PaksPath Z:/home/yes/WinApps/7.30/FortniteGame/Content/Paks -MainAes 0xD23E6F3CF45A2E31081CB7D5F94C85EC50CCB1A804F8C90248F72FA3896912E4");
+    Console.WriteLine("Example Config:");
+    Console.WriteLine("------ CliModel.config ------");
+    Console.WriteLine("// Comments don't exist they're just for this example");
+    Console.WriteLine("// Do not put spaces to the left/right of =");
+    Console.WriteLine("// If PaksPath is not in the config it will treat the location of the config file as PaksPath");
+    Console.WriteLine("PaksPath=Z:/home/yes/WinApps/7.30/FortniteGame/Content/Paks // Optional");
+    Console.WriteLine("UeVer=GAME_UE4_22");
+    Console.WriteLine("MainAes=0xD23E6F3CF45A2E31081CB7D5F94C85EC50CCB1A804F8C90248F72FA3896912E4");
+    Console.WriteLine("-----------------------------");
     return;
 }
 
@@ -19,15 +62,15 @@ var WineUsername = Environment.GetEnvironmentVariable("WINEUSERNAME");
 var outPath = Path.Join(Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location), "Output");
 Directory.CreateDirectory(outPath);
 
-var gameDir = ParsePath(args[1]);
-Console.WriteLine($"Loading UE Version {args[0]} on path {gameDir}");
+var gameDir = ParsePath(ConfigPaksPath, true);
+Console.WriteLine($"Loading UE Version {ConfigUeVer} on path {gameDir}");
 
-var provider = new DefaultFileProvider(gameDir, SearchOption.TopDirectoryOnly, new VersionContainer((EGame)Enum.Parse(typeof(EGame), args[0])));
+var provider = new DefaultFileProvider(gameDir, SearchOption.TopDirectoryOnly, new VersionContainer((EGame)Enum.Parse(typeof(EGame), ConfigUeVer)));
 provider.ReadScriptData = true;
 provider.Initialize();
 
-for (int i = 2; i < args.Length; i++) {
-    if (args[i] == "-MainAes") provider.SubmitKey(new FGuid(), new FAesKey(args[++i]));
+if (ConfigMainAes != "") {
+    provider.SubmitKey(new FGuid(), new FAesKey(ConfigMainAes));
 }
 
 while (true) {
@@ -75,7 +118,7 @@ while (true) {
     }
 }
 
-string ParsePath(string path) {
+string ParsePath(string path, bool onlyLinuxToWindows = false) {
     if (path.Length == 0)
         return path;
 
@@ -84,7 +127,7 @@ string ParsePath(string path) {
     // Idk if this works for every wine config but it works for me :)
     if (WineUsername is not null) {
         if (path[0] == '~') path = path.Replace("~", $"Z:/home/{WineUsername}");
-        else if (path.StartsWith($"Z:/home/{WineUsername}")) path = path.Replace($"Z:/home/{WineUsername}", "~");
+        else if (!onlyLinuxToWindows && path.StartsWith($"Z:/home/{WineUsername}")) path = path.Replace($"Z:/home/{WineUsername}", "~");
     }
 
     return path;
