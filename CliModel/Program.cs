@@ -9,7 +9,7 @@ if (args.Length < 2) {
     Console.WriteLine("Usage: CliModel.exe [UEVER] [PATH_TO_FOLDER_WITH_PAKS] [OPTIONS]");
     Console.WriteLine("Options:");
     Console.WriteLine("  -MainAes");
-    Console.WriteLine("Example: CliModel.exe GAME_UE4_22 Z:/home/yes/WinApps/7.30/FortniteGame/Content/Paks -K 0xD23E6F3CF45A2E31081CB7D5F94C85EC50CCB1A804F8C90248F72FA3896912E4");
+    Console.WriteLine("Example: CliModel.exe GAME_UE4_22 Z:/home/yes/WinApps/7.30/FortniteGame/Content/Paks -MainAes 0xD23E6F3CF45A2E31081CB7D5F94C85EC50CCB1A804F8C90248F72FA3896912E4");
     return;
 }
 
@@ -50,7 +50,7 @@ while (true) {
         var outFilePath = Path.Join(outPath, package.Name + ".json");
         Directory.CreateDirectory(Path.GetDirectoryName(outFilePath));
         File.WriteAllText(outFilePath, JsonConvert.SerializeObject(exports, Formatting.Indented));
-        Console.WriteLine($"Exported to: {outFilePath}");
+        Console.WriteLine($"Exported to: {ParsePath(outFilePath)}");
     }
 
     else if (inputArgs[0] == "path") {
@@ -62,9 +62,12 @@ string ParsePath(string path) {
     if (path.Length == 0)
         return path;
 
+    path = path.Replace("\\", "/");
+
     // Idk if this works for every wine config but it works for me :)
-    if (WineUsername is not null && path[0] == '~') {
-        return path.Replace("~", $"Z:/home/{WineUsername}");
+    if (WineUsername is not null) {
+        if (path[0] == '~') path = path.Replace("~", $"Z:/home/{WineUsername}");
+        else if (path.StartsWith($"Z:/home/{WineUsername}")) path = path.Replace($"Z:/home/{WineUsername}", "~");
     }
 
     return path;
