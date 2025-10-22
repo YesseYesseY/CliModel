@@ -6,8 +6,10 @@ using CUE4Parse.UE4.Versions;
 using Newtonsoft.Json;
 
 if (args.Length < 2) {
-    Console.WriteLine("Usage: CliModel.exe [UEVER] [PATH_TO_FOLDER_WITH_PAKS]");
-    Console.WriteLine("Example: CliModel.exe GAME_UE4_22 Z:/home/yes/WinApps/7.30/FortniteGame/Content/Paks");
+    Console.WriteLine("Usage: CliModel.exe [UEVER] [PATH_TO_FOLDER_WITH_PAKS] [OPTIONS]");
+    Console.WriteLine("Options:");
+    Console.WriteLine("  -MainAes");
+    Console.WriteLine("Example: CliModel.exe GAME_UE4_22 Z:/home/yes/WinApps/7.30/FortniteGame/Content/Paks -K 0xD23E6F3CF45A2E31081CB7D5F94C85EC50CCB1A804F8C90248F72FA3896912E4");
     return;
 }
 
@@ -21,7 +23,10 @@ Console.WriteLine($"Loading UE Version {args[0]} on path {gameDir}");
 
 var provider = new DefaultFileProvider(gameDir, SearchOption.TopDirectoryOnly, new VersionContainer((EGame)Enum.Parse(typeof(EGame), args[0])));
 provider.Initialize();
-provider.SubmitKey(new FGuid(), new FAesKey("0xD23E6F3CF45A2E31081CB7D5F94C85EC50CCB1A804F8C90248F72FA3896912E4"));
+
+for (int i = 2; i < args.Length; i++) {
+    if (args[i] == "-MainAes") provider.SubmitKey(new FGuid(), new FAesKey(args[++i]));
+}
 
 while (true) {
     var input = Console.ReadLine();
