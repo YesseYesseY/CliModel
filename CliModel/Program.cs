@@ -53,8 +53,14 @@ while (true) {
         Console.WriteLine($"Exported to: {ParsePath(outFilePath)}");
     }
 
-    else if (inputArgs[0] == "path") {
-        Console.WriteLine(ParsePath(inputArgs[1]));
+    else if (inputArgs[0] == "exportfiles") {
+        var outFilePath = Path.Join(outPath, "Files.txt");
+        using (StreamWriter writer = new StreamWriter(outFilePath)) {
+            foreach (var path in provider.Files.Keys) {
+                writer.WriteLine(path);
+            }
+        }
+        Console.WriteLine($"Exported to: {ParsePath(outFilePath)}");
     }
 }
 
