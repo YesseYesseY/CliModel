@@ -9,6 +9,7 @@ using Newtonsoft.Json;
 string ConfigMainAes = "";
 string ConfigUeVer = "GAME_UE5_LATEST";
 string ConfigPaksPath = "";
+List<KeyValuePair<FGuid, FAesKey>> ConfigAesKeys = new(); 
 
 void LoadConfig(string configPath) {
     var config = File.ReadAllLines(configPath);
@@ -17,6 +18,10 @@ void LoadConfig(string configPath) {
              if (data[0] == "MainAes") ConfigMainAes = data[1];
         else if (data[0] == "UeVer") ConfigUeVer = data[1];
         else if (data[0] == "UePaksPath") ConfigPaksPath = data[1];
+        else if (data[0] == "Aes") {
+            var data2 = data[1].Split(',');
+            ConfigAesKeys.Add(new (new FGuid(data2[0]), new FAesKey(data2[1])));
+        }
     }
 
     if (ConfigPaksPath == "") {
@@ -53,6 +58,7 @@ if (ConfigPaksPath == "") {
     Console.WriteLine("PaksPath=Z:/home/yes/WinApps/7.30/FortniteGame/Content/Paks // Optional");
     Console.WriteLine("UeVer=GAME_UE4_22");
     Console.WriteLine("MainAes=0xD23E6F3CF45A2E31081CB7D5F94C85EC50CCB1A804F8C90248F72FA3896912E4");
+    Console.WriteLine("Aes=A9AFB4A346420DB1399A2FB2065528F5,0x663CE8F8268B3660B2829973428DB050BE0B4F7DC31222FAA99584D91D0460C8");
     Console.WriteLine("-----------------------------");
     return;
 }
@@ -72,7 +78,7 @@ provider.Initialize();
 if (ConfigMainAes != "") {
     provider.SubmitKey(new FGuid(), new FAesKey(ConfigMainAes));
 }
-
+provider.SubmitKeys(ConfigAesKeys);
 while (true) {
     var input = Console.ReadLine();
     var inputArgs = input.Split(' ');
