@@ -26,7 +26,7 @@ void LoadConfig(string configPath) {
     }
 
     if (ConfigPaksPath == "") {
-        ConfigPaksPath = Path.GetDirectoryName(configPath);
+        ConfigPaksPath = Path.GetDirectoryName(configPath) ?? "";
     }
 }
 
@@ -70,7 +70,7 @@ if (ConfigPaksPath == "") {
 
 var WineUsername = Environment.GetEnvironmentVariable("WINEUSERNAME");
 
-var outPath = Path.Join(Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location), "Output");
+var outPath = Path.Join(Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly()?.Location) ?? "", "Output");
 Directory.CreateDirectory(outPath);
 
 var gameDir = ParsePath(ConfigPaksPath, true);
@@ -87,7 +87,7 @@ provider.SubmitKeys(ConfigAesKeys);
 
 bool singleAction = ConfigAction != "";
 while (true) {
-    var input = singleAction ? ConfigAction : Console.ReadLine();
+    var input = singleAction ? ConfigAction : Console.ReadLine() ?? "";
     var inputArgs = input.Split(' ');
 
     if (inputArgs is null || inputArgs.Length == 0)
@@ -101,12 +101,19 @@ while (true) {
         Console.WriteLine("Search done!");
     }
 
-    else if (inputArgs[0] == "jsonexports") {
-        var package = provider.LoadPackage(inputArgs[1]);
+    else if (inputArgs[0] == "exports") {
+        if (inputArgs.Length == 1) {
+            Console.WriteLine("Not enough args for exports");
+            continue;
+        }
+        if (!provider.TryLoadPackage(inputArgs[1], out var package)) {
+            Console.WriteLine($"Failed to load package {inputArgs[1]}");
+            continue;
+        }
         var exports = package.GetExports();
 
         var outFilePath = Path.Join(outPath, package.Name + ".json");
-        Directory.CreateDirectory(Path.GetDirectoryName(outFilePath));
+        Directory.CreateDirectory(Path.GetDirectoryName(outFilePath) ?? "");
         File.WriteAllText(outFilePath, JsonConvert.SerializeObject(exports, Formatting.Indented));
         Console.WriteLine($"Exported to: {ParsePath(outFilePath)}");
     }
@@ -122,15 +129,22 @@ while (true) {
     }
 
     else if (inputArgs[0] == "decomp") {
-        var obj = provider.LoadPackageObject<UClass>(inputArgs[1]);
+        if (inputArgs.Length == 1) {
+            Console.WriteLine("Not enough args for decomp");
+            continue;
+        }
+        if (!provider.TryLoadPackageObject<UClass>(inputArgs[1], out UClass? obj) || obj is null) {
+            Console.WriteLine($"Failed to load object {inputArgs[1]}");
+            continue;
+        }
         var code = obj.DecompileBlueprintToPseudo();
         var outFilePath = Path.Join(outPath, obj.GetPathName().Split('.')[0] + ".cpp");
-        Directory.CreateDirectory(Path.GetDirectoryName(outFilePath));
+        Directory.CreateDirectory(Path.GetDirectoryName(outFilePath) ?? "");
         File.WriteAllText(outFilePath, code);
         Console.WriteLine($"Exported to: {ParsePath(outFilePath)}");
     }
 
-    if (singleAction) {
+    if (singleAction || inputArgs[0] == "exit") {
         break;
     }
 }
