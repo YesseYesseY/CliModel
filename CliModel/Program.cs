@@ -42,7 +42,8 @@ for (int i = 0; i < args.Length; i++) {
     else if (args[i] == "-PaksPath") ConfigPaksPath = args[++i];
     else if (args[i] == "-Config") LoadConfig(args[++i]);
     else if (args[i] == "--") {
-        ConfigAction = args[++i];
+        ConfigAction = String.Join(' ', args.TakeLast(args.Length - ++i)); //  args[++i];
+        Console.WriteLine($"ConfigAction: {ConfigAction}");
         break;
     }
 }
