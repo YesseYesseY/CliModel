@@ -32,135 +32,41 @@ void LoadConfig(string configPath) {
     }
 }
 
-void DrawBorder((int x, int y) start, (int x, int y) end) {
-    Console.ForegroundColor = ConsoleColor.DarkGray;
-    Console.SetCursorPosition(start.x, start.y);
-    Console.Write('╔');
-    for (int i = start.x; i < end.x - 1; i++) {
-        Console.Write('═');
-    }
-    Console.Write('╗');
-    Console.SetCursorPosition(start.x, end.y);
-    Console.Write('╚');
-    for (int i = start.x; i < end.x - 1; i++) {
-        Console.Write('═');
-    }
-    Console.Write('╝');
-
-    for (int i = start.y + 1; i < end.y; i++) {
-        Console.SetCursorPosition(start.x, i);
-        Console.Write('║');
-        Console.SetCursorPosition(end.x, i);
-        Console.Write('║');
-    }
-    Console.ForegroundColor = ConsoleColor.White;
-}
-
-void WriteWithLimit(string text, int limit) {
-    if (text.Length < limit) {
-        Console.Write(text);
-        Console.Write(new String(' ', limit - text.Length));
-    } else {
-        Console.Write(text.Substring(0, limit));
-    }
-}
-
 void Tui(DefaultFileProvider provider) {
     Console.CursorVisible = false;
     Console.Clear();
 
-    var defaultBackground = Console.BackgroundColor;
-    var defaultForeground = Console.ForegroundColor;
-
     var winHeight = Console.LargestWindowHeight - 1;
     var winWidth = Console.LargestWindowWidth - 1;
 
-    (int x, int y) filesWinStart = (1, 1);
-    (int x, int y) filesWinEnd = ((int)(winWidth * 0.50) - 1, winHeight - 2);
-    int filesWinWidth = (int)Math.Abs(filesWinStart.x - filesWinEnd.x) + 1;
-    int filesWinHeight = (int)Math.Abs(filesWinStart.y - filesWinEnd.y) + 1;
-
-    (int x, int y) mainWinStart = (filesWinEnd.x + 3, 1);
-    (int x, int y) mainWinEnd = (winWidth - 1, filesWinEnd.y);
-    int mainWinHeight = (int)Math.Abs(mainWinStart.y - mainWinEnd.y) + 1;
-    int mainWinWidth = (int)Math.Abs(mainWinStart.y - mainWinEnd.y) + 1;
-
-    DrawBorder((filesWinStart.x - 1, filesWinStart.y - 1), (filesWinEnd.x + 1, filesWinEnd.y + 1));
-    DrawBorder((mainWinStart.x - 1, mainWinStart.y - 1), (mainWinEnd.x + 1, mainWinEnd.y + 1));
-
-    var firstRun = true;
-    var files = provider.Files.Keys.Where(e => !e.EndsWith(".uexp")).ToArray();
-    var selectedIndex = 0;
-    var fileOffset = 0;
-    bool shouldExit = false;
-    string[] mainWinContent = {
-        "Hello, World!",
-        "This is a test :)"
-    };
+    var helpFooter = "Q - Exit | E = Show Exports";
+    Console.SetCursorPosition(0, winHeight);
+    Console.Write(helpFooter);
     
+    var filesWin = new FilesWindow(provider, 0, 0, winWidth / 2, winHeight - 1);
+    var previewWin = new PreviewWindow(filesWin.Width + 1, 0, winWidth / 2, winHeight - 1);
+    filesWin.Focused = true;
+    filesWin.previewWin = previewWin;
+    
+    bool shouldExit = false;
     while (!shouldExit) {
-        if (!firstRun) {
-            Console.SetCursorPosition(0, winHeight);
-            Console.Write("e = Show Exports | Q = Quit");
-            var keyInfo = Console.ReadKey(true);
+        var keyInfo = Console.ReadKey(true);
 
-            if (keyInfo.Key == ConsoleKey.UpArrow) {
-                if (selectedIndex > 0) selectedIndex--;
-                if (selectedIndex < fileOffset) {
-                    fileOffset--;
-                }
-            }
-            if (keyInfo.Key == ConsoleKey.DownArrow) {
-                if (selectedIndex < files.Length) selectedIndex++;
-                if (selectedIndex - fileOffset >= filesWinHeight) {
-                    fileOffset++;
-                }
-            }
-            if (keyInfo.Key == ConsoleKey.E) {
-                if (provider.TryLoadPackage(files[selectedIndex], out var package)) {
-                    mainWinContent = JsonConvert.SerializeObject(package.GetExports(), Formatting.Indented).Split("\r\n");
-                }
-            }
-
-            if (keyInfo.Key == ConsoleKey.Q && (keyInfo.Modifiers & ConsoleModifiers.Shift) != 0) {
+        bool ignoreGlobal = false;
+             if (filesWin.Focused) ignoreGlobal = filesWin.Update(keyInfo);
+        else if (previewWin.Focused) ignoreGlobal = previewWin.Update(keyInfo);
+        
+        if (!ignoreGlobal) {
+            if (keyInfo.Key == ConsoleKey.Q) {
                 shouldExit = true;
             }
-        } else {
-            firstRun = false;
         }
 
-        for (int i = 0; i < filesWinHeight; i++) {
-            var selectedFileIndex = i + fileOffset;
-            Console.SetCursorPosition(filesWinStart.x, filesWinStart.y + i);
-            if (selectedIndex == selectedFileIndex) {
-                Console.BackgroundColor = defaultForeground;
-                Console.ForegroundColor = defaultBackground;
-            }
-            WriteWithLimit(files[selectedFileIndex], filesWinWidth);
-            if (selectedIndex == selectedFileIndex) {
-                Console.BackgroundColor = defaultBackground;
-                Console.ForegroundColor = defaultForeground;
-            }
-        }
-
-        for (int i = 0; i < mainWinHeight; i++) {
-            // mainWinContent.Length
-            Console.SetCursorPosition(mainWinStart.x, mainWinStart.y + i);
-            if (i < mainWinContent.Length) {
-                WriteWithLimit(mainWinContent[i], mainWinWidth);
-            } else {
-                Console.Write(new String(' ', mainWinWidth));
-            }
-        }
-
-        if (shouldExit) {
-            Console.SetCursorPosition(0, winHeight);
-            Console.Write(new String(' ', winWidth));
-            Console.SetCursorPosition(0, winHeight);
-        }
+        Console.SetCursorPosition(0, winHeight);
+        Console.Write(helpFooter);
     }
 
-Console.CursorVisible = true;
+    Console.CursorVisible = true;
 }
 
 void Cli(DefaultFileProvider provider) {
