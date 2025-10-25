@@ -39,7 +39,9 @@ void Tui(DefaultFileProvider provider) {
     var winHeight = Console.LargestWindowHeight - 1;
     var winWidth = Console.LargestWindowWidth - 1;
 
-    var helpFooter = "Q - Exit | E = Show Exports";
+    var winWidthClear = new String(' ', winWidth);
+
+    var helpFooter = "Q - Exit | E = Show Exports | S = Search | P Display FullPath or FileName";
     Console.SetCursorPosition(0, winHeight);
     Console.Write(helpFooter);
     
@@ -63,7 +65,14 @@ void Tui(DefaultFileProvider provider) {
         }
 
         Console.SetCursorPosition(0, winHeight);
-        Console.Write(helpFooter);
+        if (filesWin.Searching) {
+            if (filesWin.SearchStr == "")
+                Console.Write(winWidthClear);
+            else
+                Console.Write(filesWin.SearchStr);
+        } else {
+            Console.Write(helpFooter);
+        }
     }
 
     Console.CursorVisible = true;
